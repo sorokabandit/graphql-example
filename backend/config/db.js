@@ -8,9 +8,12 @@ const sequelize = new Sequelize("mydb", "daniilsorokin", "password", {
 
 const UserModel = require("../src/models/user.js");
 const RefreshTokenModel = require("../src/models/token.js");
+const MessageModel = require("../src/models/message.js");
+
 
 const User = UserModel(sequelize);
 const RefreshToken = RefreshTokenModel(sequelize);
+const Message = MessageModel(sequelize);
 
 // Устанавливаем связи
 User.hasMany(RefreshToken, { foreignKey: "userId" });
@@ -24,8 +27,9 @@ sequelize
 
 // Синхронизация моделей с базой данных
 sequelize
-  .sync({ force: false }) // force: false, чтобы не удалять существующие таблицы
+  .sync({ force: true }) // force: false, чтобы не удалять существующие таблицы
   .then(() => console.log("Database synced"))
   .catch((err) => console.error("Database sync error:", err));
 
-module.exports = { sequelize, User, RefreshToken };
+
+module.exports = { sequelize, User, RefreshToken, Message};

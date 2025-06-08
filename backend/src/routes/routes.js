@@ -1,4 +1,4 @@
-const { sequelize, User, RefreshToken } = require("../../config/db");
+const { sequelize, User, RefreshToken, Message } = require("../../config/db");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
@@ -126,6 +126,30 @@ const root = {
       throw new Error("Not authenticated");
     } else {
       return await User.findByPk(userId);
+    }
+  },
+
+  messages: async () => {
+    return await Message.findAll();
+  },
+
+  sendMessage: async ({ content, user }, context) => {
+    //console.log(content, user, context);
+
+    const userId = context.user;
+    if (!userId) {
+      throw new Error("Not authenticated");
+    } else {
+      const message = await Message.create({ content, user: user, userId: userId.id });
+      //console.log("sendMessage: Created message", message);
+      // Эмиссия события через Socket.IO
+      //console.log("sendMessage: Emitting newMessage event", message);
+      context.io.emit("newMessage", {
+        id: message.id,
+        content: message.content,
+        user: message.user,
+      });
+      return message;
     }
   },
 };

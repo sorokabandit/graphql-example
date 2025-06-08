@@ -16,9 +16,9 @@ const getUserFromToken = (token) => {
 };
 
 const authMiddleware = (req, res, next) => {
-  console.log("authMiddleware: Processing", { path: req.path, headers: req.headers });
+  //console.log("authMiddleware: Processing", { path: req.path, headers: req.headers });
   if (!req || !req.headers) {
-    console.log("authMiddleware: No req or headers, setting user to null");
+    //console.log("authMiddleware: No req or headers, setting user to null");
     req.user = null;
     return next();
   }
@@ -26,6 +26,7 @@ const authMiddleware = (req, res, next) => {
   const token = req.headers.authorization?.replace("Bearer ", "") || "";
   const user = getUserFromToken(token);
   req.user = user;
+  console.log(req.user);
   next();
 };
 
