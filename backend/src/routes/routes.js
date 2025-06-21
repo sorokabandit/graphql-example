@@ -1,9 +1,17 @@
-const { sequelize, User, RefreshToken } = require("../../config/db");
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
+const { sequelize, User, RefreshToken, Message } = require("../../config/db");
+const { Bot } = require('grammy');
 
 const ACCESS_TOKEN_SECRET = "supersecret_access";
 const REFRESH_TOKEN_SECRET = "supersecret_refresh";
+const token = '7784918836:AAHrlTQy1xaCBLMf5t025oFSysEZrP7nSBM';
+const chatId = '-4907142352';
+
+const bot = new Bot(token);
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+//bot.on('message', (ctx) => console.log(ctx.chat.id));
+bot.start().catch((err) => console.error('Bot startup error:', err));
+
 
 // Обработчики запросов
 const root = {
@@ -126,6 +134,32 @@ const root = {
       throw new Error("Not authenticated");
     } else {
       return await User.findByPk(userId);
+    }
+  },
+
+  messages: async () => {
+    return await Message.findAll();
+  },
+
+  sendMessage: async ({ content, user }, context) => {
+    //console.log(content, user, context);
+
+    const userId = context.user;
+    if (!userId) {
+      throw new Error("Not authenticated");
+    } else {
+      const message = await Message.create({ content, user: user, userId: userId.id });
+
+      await bot.api.sendMessage(chatId, `Новое сообщение от ${message.user}: ${message.content}`);
+      //console.log("sendMessage: Created message", message);
+      // Эмиссия события через Socket.IO
+      //console.log("sendMessage: Emitting newMessage event", message);
+      context.io.emit("newMessage", {
+        id: message.id,
+        content: message.content,
+        user: message.user,
+      });
+      return message;
     }
   },
 };

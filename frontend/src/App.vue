@@ -16,26 +16,34 @@
     </div>
     <div v-else>
       <BaseUser :result="result" @logout="logout" />
+      <BaseChat :user="result?.me" />
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import { useQuery, useMutation } from '@vue/apollo-composable';
-import { toast } from 'vue3-toastify';
-import { LOGIN_MUTATION, REG_MUTATION, ME_QUERY, LOGOUT_MUTATION } from './variables';
+import { ref } from "vue";
+import { useQuery, useMutation } from "@vue/apollo-composable";
+import { toast } from "vue3-toastify";
+import {
+  LOGIN_MUTATION,
+  REG_MUTATION,
+  ME_QUERY,
+  LOGOUT_MUTATION,
+} from "./variables";
+import { io } from "socket.io-client";
 
-import BaseUserForm from '@/components/common/BaseUserForm.vue';
-import BaseUser from '@/components/common/BaseUser.vue';
+import BaseUserForm from "@/components/common/BaseUserForm.vue";
+import BaseUser from "@/components/common/BaseUser.vue";
+import BaseChat from "@/components/common/BaseChat.vue";
 
-const curTab = ref('login');
-const isAuth = ref(localStorage.getItem('accessToken') !== null);
+const curTab = ref("login");
+let socket = null;
+const isAuth = ref(localStorage.getItem("accessToken") !== null);
 
 const { mutate: regAuth } = useMutation(REG_MUTATION);
 const { mutate: loginAuth } = useMutation(LOGIN_MUTATION);
 const { mutate: logoutAuth } = useMutation(LOGOUT_MUTATION);
-
 
 const login = async (user) => {
   try {
@@ -46,14 +54,18 @@ const login = async (user) => {
 
     // Сохраняем access и refresh токены
     const { accessToken, refreshToken, user: userData } = response.data.login;
-    localStorage.setItem('accessToken', accessToken);
-    localStorage.setItem('refreshToken', refreshToken);
+    localStorage.setItem("accessToken", accessToken);
+    localStorage.setItem("refreshToken", refreshToken);
     isAuth.value = true;
-    toast.success('Успешный вход');
+    // Подключение к Socket.IO после логина
+    socket = io("http://localhost:4000", {
+      auth: { token: localStorage.getItem("accessToken") },
+    });
+    toast.success("Успешный вход");
     refetch();
   } catch (err) {
-    console.log(err)
-    toast.error('Ошибка авторизации');
+    console.log(err);
+    toast.error("Ошибка авторизации");
   }
 };
 
@@ -65,20 +77,28 @@ const reg = async (user) => {
     });
 
     // Сохраняем access и refresh токены
-    const { accessToken, refreshToken, user: userData } = response.data.register;
-    localStorage.setItem('accessToken', accessToken);
-    localStorage.setItem('refreshToken', refreshToken);
+    const {
+      accessToken,
+      refreshToken,
+      user: userData,
+    } = response.data.register;
+    localStorage.setItem("accessToken", accessToken);
+    localStorage.setItem("refreshToken", refreshToken);
     isAuth.value = true;
-    toast.success('Успешная регистрация');
+    // Подключение к Socket.IO после регистрации
+    socket = io("http://localhost:4000", {
+      auth: { token: localStorage.getItem("accessToken") },
+    });
+    toast.success("Успешная регистрация");
     refetch();
   } catch (err) {
-    toast.error('Ошибка регистрации');
+    toast.error("Ошибка регистрации");
   }
 };
 
 const logout = async () => {
   try {
-    const { data } = await logoutAuth(LOGOUT_MUTATION)
+    const { data } = await logoutAuth(LOGOUT_MUTATION);
     console.log("Logout response:", data);
     if (data.logout) {
       // Очищаем localStorage после успешного выхода
