@@ -4,12 +4,12 @@ const { Bot } = require('grammy');
 const ACCESS_TOKEN_SECRET = "supersecret_access";
 const REFRESH_TOKEN_SECRET = "supersecret_refresh";
 const token = '7784918836:AAHrlTQy1xaCBLMf5t025oFSysEZrP7nSBM';
-const chatId = '393703320';
+const chatId = '-4907142352';
 
 const bot = new Bot(token);
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-// bot.on('message', (ctx) => console.log(ctx.chat.id));
+//bot.on('message', (ctx) => console.log(ctx.chat.id));
 bot.start().catch((err) => console.error('Bot startup error:', err));
 
 
