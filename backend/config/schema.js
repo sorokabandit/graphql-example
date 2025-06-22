@@ -13,6 +13,7 @@ const schema = buildSchema(`
     id: ID!
     email: String!
     name: String
+    threadId: Int
   }
 
   type AuthPayload {

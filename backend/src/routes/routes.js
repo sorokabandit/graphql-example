@@ -1,17 +1,16 @@
 const { sequelize, User, RefreshToken, Message } = require("../../config/db");
-const { Bot } = require('grammy');
+const { Bot } = require("grammy");
 
 const ACCESS_TOKEN_SECRET = "supersecret_access";
 const REFRESH_TOKEN_SECRET = "supersecret_refresh";
-const token = '7784918836:AAHrlTQy1xaCBLMf5t025oFSysEZrP7nSBM';
-const chatId = '-4907142352';
+const token = "7784918836:AAHrlTQy1xaCBLMf5t025oFSysEZrP7nSBM";
+const chatId = "-1002731194100"; // ID канала или чата, куда будут отправляться сообщения
 
 const bot = new Bot(token);
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 //bot.on('message', (ctx) => console.log(ctx.chat.id));
-bot.start().catch((err) => console.error('Bot startup error:', err));
-
+bot.start().catch((err) => console.error("Bot startup error:", err));
 
 // Обработчики запросов
 const root = {
@@ -148,12 +147,39 @@ const root = {
     if (!userId) {
       throw new Error("Not authenticated");
     } else {
-      const message = await Message.create({ content, user: user, userId: userId.id });
+      const userInstance = await User.findByPk(userId.id);
+      const message = await Message.create({
+        content,
+        user: user,
+        userId: userId.id,
+      });
 
-      await bot.api.sendMessage(chatId, `Новое сообщение от ${message.user}: ${message.content}`);
-      //console.log("sendMessage: Created message", message);
-      // Эмиссия события через Socket.IO
-      //console.log("sendMessage: Emitting newMessage event", message);
+      if (!userInstance.threadId) {
+        const thread = await bot.api.createForumTopic(
+          chatId,
+          `Тема для ${userInstance.email} (ID: ${userInstance.id})`
+        );
+
+        const threadId = thread.message_thread_id;
+        console.log("Залупема", thread);
+
+        await userInstance.update({ threadId });
+        //await userId.save();
+
+        // Отправляем приветственное сообщение в тему
+        await bot.api.sendMessage(
+          chatId,
+          `Тема создана для ${userInstance.email}!`,
+          { message_thread_id: threadId }
+        );
+      }
+
+      await bot.api.sendMessage(
+        chatId,
+        `Новое сообщение от ${userInstance.email}: ${message.content}`,
+        { message_thread_id: userInstance.threadId }
+      );
+
       context.io.emit("newMessage", {
         id: message.id,
         content: message.content,
